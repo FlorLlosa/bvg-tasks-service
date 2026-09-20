@@ -6,6 +6,9 @@ import { CreateTaskItemDto } from './dto/create-task-item.dto';
 import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
 import { AssignTaskDto } from './dto/assign-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
+import { CreateTaskTemplateDto } from './dto/create-task-template.dto';
+import { CreateTaskTemplateItemDto } from './dto/create-task-template-item.dto';
+import { CreateTaskFromTemplateDto } from './dto/create-task-from-template.dto';
 
 @Injectable()
 export class TasksService {
@@ -126,6 +129,105 @@ export class TasksService {
         dueDate: updateTaskDto.dueDate
           ? new Date(updateTaskDto.dueDate)
           : undefined,
+      },
+    });
+  }
+  async createTemplate(createTaskTemplateDto: CreateTaskTemplateDto) {
+    const sector = await this.prisma.sector.findUnique({
+      where: {
+        id: createTaskTemplateDto.sectorId,
+      },
+    });
+
+    if (!sector) {
+      throw new NotFoundException(
+        `No existe un sector con el ID ${createTaskTemplateDto.sectorId}`,
+      );
+    }
+
+    return this.prisma.taskTemplate.create({
+      data: {
+        title: createTaskTemplateDto.title,
+        description: createTaskTemplateDto.description,
+        sectorId: createTaskTemplateDto.sectorId,
+      },
+    });
+  }
+  async addTemplateItem(
+    templateId: number,
+    createTaskTemplateItemDto: CreateTaskTemplateItemDto,
+  ) {
+    const template = await this.prisma.taskTemplate.findUnique({
+      where: {
+        id: templateId,
+      },
+    });
+
+    if (!template) {
+      throw new NotFoundException(
+        `No existe una plantilla con el ID ${templateId}`,
+      );
+    }
+
+    return this.prisma.taskTemplateItem.create({
+      data: {
+        description: createTaskTemplateItemDto.description,
+        templateId,
+      },
+    });
+  }
+  async findTemplate(id: number) {
+    const template = await this.prisma.taskTemplate.findUnique({
+      where: { id },
+      include: {
+        sector: true,
+        items: true,
+      },
+    });
+
+    if (!template) {
+      throw new NotFoundException(
+        `No existe una plantilla con el ID ${id}`,
+      );
+    }
+
+    return template;
+  }
+  async createFromTemplate(
+    templateId: number,
+    createTaskFromTemplateDto: CreateTaskFromTemplateDto,
+  ) {
+    const template = await this.prisma.taskTemplate.findUnique({
+      where: { id: templateId },
+      include: {
+        items: true,
+      },
+    });
+
+    if (!template) {
+      throw new NotFoundException(
+        `No existe una plantilla con el ID ${templateId}`,
+      );
+    }
+
+    return this.prisma.task.create({
+      data: {
+        title: template.title,
+        description: template.description,
+        assignedUserId: createTaskFromTemplateDto.assignedUserId,
+        createdByUserId: createTaskFromTemplateDto.createdByUserId,
+        dueDate: createTaskFromTemplateDto.dueDate
+          ? new Date(createTaskFromTemplateDto.dueDate)
+          : undefined,
+
+        items: {
+          create: template.items.map((item) => ({
+            description: item.description,
+          })),
+        },
+      },
+      include: {
+        items: true,
       },
     });
   }

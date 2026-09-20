@@ -14,6 +14,9 @@ import { CreateTaskItemDto } from './dto/create-task-item.dto';
 import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
 import { AssignTaskDto } from './dto/assign-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
+import { CreateTaskTemplateDto } from './dto/create-task-template.dto';
+import { CreateTaskTemplateItemDto } from './dto/create-task-template-item.dto';
+import { CreateTaskFromTemplateDto } from './dto/create-task-from-template.dto';
 
 @Controller('tasks')
 export class TasksController {
@@ -31,6 +34,14 @@ export class TasksController {
     @Param('userId', ParseIntPipe) userId: number,
   ) {
     return this.tasksService.findByAssignedUser(userId);
+  }
+  @Post('templates')
+  createTemplate(@Body() createTaskTemplateDto: CreateTaskTemplateDto) {
+    return this.tasksService.createTemplate(createTaskTemplateDto);
+  }
+  @Get('templates/:id')
+  findTemplate(@Param('id', ParseIntPipe) id: number) {
+    return this.tasksService.findTemplate(id);
   }
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
@@ -70,5 +81,25 @@ export class TasksController {
     @Body() updateTaskDto: UpdateTaskDto,
   ) {
     return this.tasksService.update(id, updateTaskDto);
+  }
+  @Post('templates/:templateId/items')
+  addTemplateItem(
+    @Param('templateId', ParseIntPipe) templateId: number,
+    @Body() createTaskTemplateItemDto: CreateTaskTemplateItemDto,
+  ) {
+    return this.tasksService.addTemplateItem(
+      templateId,
+      createTaskTemplateItemDto,
+    );
+  }
+  @Post('templates/:templateId/create-task')
+  createFromTemplate(
+    @Param('templateId', ParseIntPipe) templateId: number,
+    @Body() createTaskFromTemplateDto: CreateTaskFromTemplateDto,
+  ) {
+    return this.tasksService.createFromTemplate(
+      templateId,
+      createTaskFromTemplateDto,
+    );
   }
 }
