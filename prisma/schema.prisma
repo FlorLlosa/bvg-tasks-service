@@ -6,3 +6,82 @@ datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
+
+model Task {
+  id              Int          @id @default(autoincrement())
+  title           String
+  description     String?
+  status          TaskStatus   @default(PENDING)
+  priority        TaskPriority @default(MEDIUM)
+
+  assignedUserId  Int?
+  createdByUserId Int
+
+  dueDate         DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  items           TaskItem[]
+}
+
+model TaskItem {
+  id          Int      @id @default(autoincrement())
+  description String
+  isCompleted Boolean  @default(false)
+  completedAt DateTime?
+
+  taskId Int
+  task   Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Sector {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+
+  templates TaskTemplate[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TaskTemplate {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+
+  sectorId Int
+  sector   Sector @relation(fields: [sectorId], references: [id])
+
+  items TaskTemplateItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model TaskTemplateItem {
+  id          Int    @id @default(autoincrement())
+  description String
+
+  templateId Int
+  template   TaskTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
