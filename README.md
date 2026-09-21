@@ -1,98 +1,219 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# BVG Tasks Service
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Microservicio encargado de la gestión de tareas, ítems, sectores y plantillas de tareas del sistema.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Forma parte de una arquitectura de microservicios compuesta por:
 
-## Description
+- API Gateway
+- Users/Auth Service
+- Tasks Service
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Tecnologías
 
-## Project setup
+- Node.js
+- NestJS
+- TypeScript
+- Prisma ORM
+- MySQL
 
-```bash
-$ npm install
+## Funcionalidades
+
+### Gestión de tareas
+
+- Creación de tareas
+- Listado de tareas
+- Consulta de tareas por ID
+- Actualización de tareas
+- Cambio de estado
+- Asignación de tareas a usuarios
+- Consulta de tareas asignadas a un usuario
+
+### Ítems de tareas
+
+Las tareas pueden contener diferentes ítems o subtareas.
+
+El servicio permite:
+
+- Agregar ítems a una tarea
+- Marcar ítems como completados
+- Consultar los ítems asociados a una tarea
+
+### Sectores
+
+Permite crear sectores que pueden utilizarse para organizar las tareas dentro del sistema.
+
+### Plantillas de tareas
+
+El sistema permite definir plantillas reutilizables para facilitar la creación de tareas.
+
+Las plantillas permiten:
+
+- Crear una plantilla
+- Consultar una plantilla
+- Agregar ítems a una plantilla
+- Crear una nueva tarea a partir de una plantilla
+
+## Base de datos
+
+Este microservicio posee su propia base de datos MySQL:
+
+```text
+bvg_tasks_db
 ```
 
-## Compile and run the project
+Principales entidades:
 
-```bash
-# development
-$ npm run start
+- Task
+- TaskItem
+- Sector
+- TaskTemplate
+- TaskTemplateItem
 
-# watch mode
-$ npm run start:dev
+Las relaciones y migraciones se administran mediante Prisma ORM.
 
-# production mode
-$ npm run start:prod
+## Relación con Users/Auth
+
+Este microservicio no accede directamente a la base de datos de usuarios.
+
+Las tareas almacenan identificadores de usuario, por ejemplo:
+
+```text
+assignedUserId
+createdByUserId
 ```
 
-## Run tests
+La autenticación, los roles y los permisos son responsabilidad del microservicio Users/Auth y del API Gateway.
+
+Esto permite mantener separadas las responsabilidades y las bases de datos de los distintos microservicios.
+
+## Instalación
+
+Clonar el repositorio e instalar las dependencias:
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm install
 ```
 
-## Deployment
+## Variables de entorno
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+Crear un archivo `.env` en la raíz del proyecto.
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+Ejemplo:
+
+```env
+DATABASE_URL="mysql://usuario:contraseña@localhost:3306/bvg_tasks_db"
+PORT=3002
+```
+
+## Prisma
+
+Generar el cliente de Prisma:
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npx prisma generate
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+Aplicar las migraciones:
 
-## Resources
+```bash
+npx prisma migrate dev
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+## Ejecutar el microservicio
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+Modo desarrollo:
 
-## Support
+```bash
+npm run start:dev
+```
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+Por defecto el servicio se ejecuta en:
 
-## Stay in touch
+```text
+http://localhost:3002
+```
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+## Endpoints principales
 
-## License
+### Tasks
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+```text
+GET   /tasks
+GET   /tasks/:id
+GET   /tasks/assigned/:userId
+POST  /tasks
+PATCH /tasks/:id
+PATCH /tasks/:id/status
+PATCH /tasks/:id/assign
+```
+
+### Task Items
+
+```text
+POST  /tasks/:id/items
+PATCH /tasks/:taskId/items/:itemId/complete
+```
+
+### Task Templates
+
+```text
+POST /tasks/templates
+GET  /tasks/templates/:id
+POST /tasks/templates/:templateId/items
+POST /tasks/templates/:templateId/create-task
+```
+
+### Sectors
+
+```text
+POST /sectors
+```
+
+## Arquitectura
+
+El servicio se ejecuta de manera independiente y mantiene su propia base de datos.
+
+En el funcionamiento integrado del sistema, las solicitudes se realizan a través del API Gateway:
+
+```text
+Cliente / Postman
+        |
+        v
+API Gateway :3000
+        |
+        +----------------------+
+        |                      |
+        v                      v
+Users/Auth :3001         Tasks Service :3002
+        |                      |
+        v                      v
+bvg_users_db             bvg_tasks_db
+```
+
+El API Gateway valida la autenticación y los permisos del usuario mediante Users/Auth antes de permitir las operaciones protegidas sobre Tasks.
+
+## Autorización
+
+Los permisos relacionados con tareas son administrados por Users/Auth y validados por el API Gateway.
+
+Entre ellos:
+
+- `TASKS_READ`
+- `TASKS_CREATE`
+- `TASKS_UPDATE`
+- `TASKS_ASSIGN`
+
+Por lo tanto, Tasks se concentra en la lógica de negocio relacionada con las tareas mientras que la autenticación y autorización permanecen desacopladas.
+
+## Repositorios relacionados
+
+Este proyecto forma parte del backend BVG y trabaja en conjunto con:
+
+- `bvg-user-service`
+- `bvg-api-gateway`
+
+## Autora
+
+Florencia Llosa
+
+Proyecto - Prácticas Profesionalizantes III
