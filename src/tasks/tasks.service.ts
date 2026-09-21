@@ -186,9 +186,7 @@ export class TasksService {
     });
 
     if (!template) {
-      throw new NotFoundException(
-        `No existe una plantilla con el ID ${id}`,
-      );
+      throw new NotFoundException(`No existe una plantilla con el ID ${id}`);
     }
 
     return template;
