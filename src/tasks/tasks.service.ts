@@ -14,18 +14,37 @@ import { CreateTaskFromTemplateDto } from './dto/create-task-from-template.dto';
 export class TasksService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createTaskDto: CreateTaskDto) {
-    return this.prisma.task.create({
-      data: {
-        title: createTaskDto.title,
-        description: createTaskDto.description,
-        priority: createTaskDto.priority,
-        assignedUserId: createTaskDto.assignedUserId,
-        createdByUserId: createTaskDto.createdByUserId,
-        dueDate: createTaskDto.dueDate
-          ? new Date(createTaskDto.dueDate)
-          : undefined,
-      },
+  async create(createTaskDto: CreateTaskDto, actorUserId: number) {
+    return this.prisma.$transaction(async (tx) => {
+      const task = await tx.task.create({
+        data: {
+          title: createTaskDto.title,
+          description: createTaskDto.description,
+          priority: createTaskDto.priority,
+          assignedUserId: createTaskDto.assignedUserId,
+          createdByUserId: actorUserId,
+          ...(createTaskDto.sectorId !== undefined
+            ? {
+                sector: {
+                  connect: { id: createTaskDto.sectorId },
+                },
+              }
+            : {}),
+          dueDate: createTaskDto.dueDate
+            ? new Date(createTaskDto.dueDate)
+            : undefined,
+        },
+      });
+
+      await tx.taskHistory.create({
+        data: {
+          taskId: task.id,
+          actorUserId,
+          action: 'CREATED',
+        },
+      });
+
+      return task;
     });
   }
   async findAll() {
@@ -84,26 +103,71 @@ export class TasksService {
       },
     });
   }
-  async updateStatus(id: number, updateTaskStatusDto: UpdateTaskStatusDto) {
-    await this.findOne(id);
+  async updateStatus(
+    id: number,
+    updateTaskStatusDto: UpdateTaskStatusDto,
+    actorUserId: number,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      const currentTask = await tx.task.findUniqueOrThrow({
+        where: { id },
+      });
 
-    return this.prisma.task.update({
-      where: { id },
-      data: {
-        status: updateTaskStatusDto.status,
-      },
+      // No registrar un evento si el estado no cambia.
+      if (currentTask.status === updateTaskStatusDto.status) {
+        return currentTask;
+      }
+
+      const updatedTask = await tx.task.update({
+        where: { id },
+        data: {
+          status: updateTaskStatusDto.status,
+        },
+      });
+
+      await tx.taskHistory.create({
+        data: {
+          taskId: id,
+          actorUserId,
+          action: 'STATUS_CHANGED',
+          oldStatus: currentTask.status,
+          newStatus: updatedTask.status,
+        },
+      });
+
+      return updatedTask;
     });
   }
-  async assign(id: number, assignTaskDto: AssignTaskDto) {
-    await this.findOne(id);
+  async assign(id: number, assignTaskDto: AssignTaskDto, actorUserId: number) {
+    return this.prisma.$transaction(async (tx) => {
+      const currentTask = await tx.task.findUniqueOrThrow({
+        where: { id },
+      });
 
-    return this.prisma.task.update({
-      where: { id },
-      data: {
-        assignedUserId: assignTaskDto.assignedUserId,
-      },
+      // Evitar registrar asignaciones que no producen cambios.
+      if (currentTask.assignedUserId === assignTaskDto.assignedUserId) {
+        return currentTask;
+      }
+
+      const updatedTask = await tx.task.update({
+        where: { id },
+        data: {
+          assignedUserId: assignTaskDto.assignedUserId,
+        },
+      });
+
+      await tx.taskHistory.create({
+        data: {
+          taskId: id,
+          actorUserId,
+          action: 'ASSIGNED',
+        },
+      });
+
+      return updatedTask;
     });
   }
+
   async findByAssignedUser(userId: number) {
     return this.prisma.task.findMany({
       where: {
@@ -111,6 +175,11 @@ export class TasksService {
       },
       include: {
         items: true,
+        history: {
+          orderBy: {
+            createdAt: 'asc',
+          },
+        },
       },
       orderBy: {
         id: 'asc',

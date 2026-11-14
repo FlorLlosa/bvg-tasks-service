@@ -25,10 +25,11 @@ export class CreateTaskDto {
   @IsInt()
   assignedUserId?: number;
 
-  @IsInt()
-  createdByUserId!: number;
-
   @IsOptional()
   @IsDateString()
   dueDate?: string;
+
+  @IsOptional()
+  @IsInt()
+  sectorId?: number;
 }
