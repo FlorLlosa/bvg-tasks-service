@@ -100,8 +100,10 @@ export class TasksController {
     @Param('id', ParseIntPipe) id: number,
     @Body() updateTaskStatusDto: UpdateTaskStatusDto,
     @Headers('x-actor-user-id') actorUserIdHeader: string | undefined,
+    @Headers('x-actor-role-id') actorRoleIdHeader: string | undefined,
   ) {
     const actorUserId = Number(actorUserIdHeader);
+    const actorRoleId = Number(actorRoleIdHeader);
 
     if (
       !actorUserIdHeader ||
@@ -113,7 +115,22 @@ export class TasksController {
       );
     }
 
-    return this.tasksService.updateStatus(id, updateTaskStatusDto, actorUserId);
+    if (
+      !actorRoleIdHeader ||
+      !Number.isSafeInteger(actorRoleId) ||
+      actorRoleId <= 0
+    ) {
+      throw new BadRequestException(
+        'El rol del usuario autenticado es inválido',
+      );
+    }
+
+    return this.tasksService.updateStatus(
+      id,
+      updateTaskStatusDto,
+      actorUserId,
+      actorRoleId,
+    );
   }
 
   @Patch(':id/assign')

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTaskDto } from './dto/create-task.dto';
@@ -103,23 +107,41 @@ export class TasksService {
       },
     });
   }
+
   async updateStatus(
     id: number,
     updateTaskStatusDto: UpdateTaskStatusDto,
     actorUserId: number,
+    actorRoleId: number,
   ) {
     return this.prisma.$transaction(async (tx) => {
       const currentTask = await tx.task.findUniqueOrThrow({
         where: { id },
       });
 
-      // No registrar un evento si el estado no cambia.
+      if (actorRoleId === 2) {
+        if (currentTask.assignedUserId !== actorUserId) {
+          throw new ForbiddenException(
+            'No podés completar una tarea asignada a otro empleado',
+          );
+        }
+
+        if (updateTaskStatusDto.status !== 'COMPLETED') {
+          throw new ForbiddenException(
+            'El empleado solamente puede completar sus tareas',
+          );
+        }
+      }
+
       if (currentTask.status === updateTaskStatusDto.status) {
         return currentTask;
       }
 
       const updatedTask = await tx.task.update({
-        where: { id },
+        where: {
+          id,
+          ...(actorRoleId === 2 ? { assignedUserId: actorUserId } : {}),
+        },
         data: {
           status: updateTaskStatusDto.status,
         },
@@ -138,6 +160,7 @@ export class TasksService {
       return updatedTask;
     });
   }
+
   async assign(id: number, assignTaskDto: AssignTaskDto, actorUserId: number) {
     return this.prisma.$transaction(async (tx) => {
       const currentTask = await tx.task.findUniqueOrThrow({
