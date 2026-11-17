@@ -8,26 +8,35 @@ datasource db {
 }
 
 model Task {
-  id              Int          @id @default(autoincrement())
-  title           String
-  description     String?
-  status          TaskStatus   @default(PENDING)
-  priority        TaskPriority @default(MEDIUM)
+  id          Int          @id @default(autoincrement())
+  title       String
+  description String?
+  status      TaskStatus   @default(PENDING)
+  priority    TaskPriority @default(MEDIUM)
 
   assignedUserId  Int?
   createdByUserId Int
 
-  dueDate         DateTime?
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  // Sector al que pertenece la tarea.
+  sectorId Int?
+  sector   Sector? @relation(fields: [sectorId], references: [id])
 
-  items           TaskItem[]
+  @@index([sectorId])
+
+  dueDate   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  items TaskItem[]
+
+  // Historial de acciones realizadas sobre esta tarea.
+  history TaskHistory[]
 }
 
 model TaskItem {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   description String
-  isCompleted Boolean  @default(false)
+  isCompleted Boolean   @default(false)
   completedAt DateTime?
 
   taskId Int
@@ -38,18 +47,21 @@ model TaskItem {
 }
 
 model Sector {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
+  id          Int     @id @default(autoincrement())
+  name        String  @unique
   description String?
 
   templates TaskTemplate[]
+
+  // Tareas pertenecientes al sector.
+  tasks Task[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model TaskTemplate {
-  id          Int      @id @default(autoincrement())
+  id          Int     @id @default(autoincrement())
   title       String
   description String?
 
@@ -84,4 +96,44 @@ model TaskTemplateItem {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Registra los cambios importantes de una tarea.
+// Los datos se conservarán para consultar el historial diario y mensual.
+model TaskHistory {
+  id Int @id @default(autoincrement())
+
+  taskId Int
+  task   Task @relation(fields: [taskId], references: [id])
+
+  // Identificador del usuario que realizó la acción.
+  // Pertenece al microservicio Users/Auth.
+  actorUserId Int
+
+  action TaskHistoryAction
+
+  // Ítem afectado, si la acción corresponde a un checklist.
+  taskItemId Int?
+
+  // Estado anterior y nuevo, cuando corresponde.
+  oldStatus TaskStatus?
+  newStatus TaskStatus?
+
+  // Observación opcional del empleado.
+  observation String? @db.Text
+
+  // Fecha y hora registradas por el backend.
+  createdAt DateTime @default(now())
+
+  @@index([taskId, createdAt])
+  @@index([actorUserId, createdAt])
+}
+
+// Tipos de acciones que podremos registrar en el historial.
+enum TaskHistoryAction {
+  CREATED
+  ASSIGNED
+  STATUS_CHANGED
+  ITEM_COMPLETED
+  OBSERVATION_ADDED
 }
